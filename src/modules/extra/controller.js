@@ -1,8 +1,4 @@
-import { AuthenticationError, ValidationError } from '#errors'
-import { Op } from 'sequelize'
-import sha256 from 'sha256'
 import path from 'path'
-import JWT from '#JWT'
 
 const GET_AVATAR = async (req, res, next) => {
     try {
