@@ -21,8 +21,8 @@ import loggerMiddleware from './middlewares/logger.js'
     // mock data
     await mockdata({ sequelize: db })
 
+    // set engine
     app.engine('html', ejs.renderFile)
-
     app.set('view engine', 'html')
     app.set('views', path.join(process.cwd(), 'src', 'views'))
 
@@ -32,6 +32,7 @@ import loggerMiddleware from './middlewares/logger.js'
     app.use(express.json())
     app.use(fileUpload())
 
+    // modules
     app.use(modules)
 
     // error handling and logging
