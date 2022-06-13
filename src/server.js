@@ -1,5 +1,7 @@
 import fileUpload from "express-fileupload"
+import { Server } from "socket.io"
 import express from "express"
+import http from "http"
 import path from "path"
 import ejs from "ejs"
 import './config/index.js'
@@ -12,8 +14,11 @@ import errorHandlerMiddleware from './middlewares/errorHandler.js'
 import databaseMiddleware from './middlewares/database.js'
 import loggerMiddleware from './middlewares/logger.js'
 
+import socketModule from './socket/index.js'
+
 !async function () { 
     const app = express()
+    const httpServer = http.createServer(app)
 
     // database connection
     const db = await database()
@@ -39,7 +44,10 @@ import loggerMiddleware from './middlewares/logger.js'
     app.use(errorHandlerMiddleware)
     app.use(loggerMiddleware)
 
-    app.listen(
+    const io = new Server(httpServer)
+    socketModule({ io, db })
+
+    httpServer.listen(
         process.env.PORT,
         () => console.log('server ready at http://localhost:' + process.env.PORT)
     )

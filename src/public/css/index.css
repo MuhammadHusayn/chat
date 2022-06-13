@@ -55,6 +55,7 @@ button:hover {
     font-weight: 500;
 }
 .chats-item {
+    position: relative;
     display: flex;
     align-items: center;
     padding: 10px 25px;
@@ -70,6 +71,18 @@ button:hover {
     font-size: 18px;
     font-weight: 500;
 }
+
+.chats-item .online-indicator {
+    position: absolute;
+    display: inline-block;
+    left: 15%;
+    top: 65%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: lime;
+}
+
 .chat-side {
     width: 54%;
     position: relative;
@@ -168,7 +181,7 @@ input[type="file"] {
     margin-bottom: 8px;
     align-items: flex-end;
 }
-.msg-wrapper>img {
+.msg-wrapper > .profile-img {
     width: 40px;
     height: 40px;
     display: block;
@@ -176,6 +189,7 @@ input[type="file"] {
     margin-right: 20px;
     border-radius: 50%;
 }
+
 .msg-text {
     border-radius: 8px;
     padding: 8px;
@@ -206,7 +220,18 @@ input[type="file"] {
     opacity: 0.7;
     font-weight: 500;
 }
-.msg-from > img {
+
+.msg-from {
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.msg-from img {
+    margin-right: 0;
+    margin-left: 20px;
+}
+
+.msg-from > text {
     margin-left: auto;
 }
 
@@ -262,4 +287,15 @@ input[type="file"] {
 }
 .uploaded-file-item a img {
     margin-right: 5px;
+}
+
+.delete-icon {
+    display: none;
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.msg-wrapper:hover .delete-icon-active {
+    display: block;
 }

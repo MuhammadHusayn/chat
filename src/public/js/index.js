@@ -1,3 +1,9 @@
+const socket = io({
+    auth: {
+        token: window.localStorage.getItem('token')
+    }
+})
+
 let lastSelectedUserId
 
 async function renderUsers(users) {
@@ -5,10 +11,10 @@ async function renderUsers(users) {
         const li = document.createElement('li')
 
         li.classList.add('chats-item')
-
         li.innerHTML = `
             <img src="${'/file/' + token + '/' + user.userImg}" alt="profile-picture">
             <p>${user.username}</p>
+            <span data-id="${user.userId}" class="${user.socketId ? 'online-indicator' : ''}"></span>
         `
 
         chatsList.append(li)
@@ -31,6 +37,7 @@ async function renderUsers(users) {
 async function renderMessages(messages) {
     for (const message of messages) {
         const div = document.createElement('div')
+        div.dataset.id = message.messageId
 
         const isMyMessage = !(lastSelectedUserId == message.messageTo.userId)
         div.classList.add('msg-wrapper', !isMyMessage ? 'msg-from' : null)
@@ -42,16 +49,17 @@ async function renderMessages(messages) {
 
         if (message.messageType === 'plain/text') {
             div.innerHTML = `
-                <img src="${'/file/' + token + '/' + message.messageFrom.userImg}" alt="profile-picture">
+                <img class="profile-img" src="${'/file/' + token + '/' + message.messageFrom.userImg}" alt="profile-picture">
                 <div class="msg-text">
                     <p class="msg-author">${message.messageFrom.username}</p>
-                    <p class="msg" onkeydown="updateMessage(event, this, ${message.messageId})" contentEditable>${message.messageBody}</p>
+                    <p data-id="${message.messageId}" class="msg" onkeydown="updateMessage(event, this, ${message.messageId})" ${!isMyMessage ? 'contentEditable' : null}>${message.messageBody}</p>
                     <p class="time">${time}</p>
                 </div>
+                <img onclick="deleteMessage(this, event, ${message.messageId})" class="delete-icon ${!isMyMessage ? 'delete-icon-active' : ''}" src="https://cdn3.iconfinder.com/data/icons/flat-actions-icons-9/792/Close_Icon_Dark-512.png">
             ` 
         } else {
             div.innerHTML = `
-                <img src="${'/file/' + token + '/' + message.messageFrom.userImg}" alt="profile-picture">
+                <img class="profile-img" src="${'/file/' + token + '/' + message.messageFrom.userImg}" alt="profile-picture">
                 <div class="msg-text">
                     <p class="msg-author">${message.messageFrom.username}</p>
                     ${
@@ -64,6 +72,7 @@ async function renderMessages(messages) {
                     </a>
                     <p class="time">${time}</p>
                 </div>
+                <img onclick="deleteMessage(this, event, ${message.messageId})" class="delete-icon ${!isMyMessage ? 'delete-icon-active' : ''}" src="https://cdn3.iconfinder.com/data/icons/flat-actions-icons-9/792/Close_Icon_Dark-512.png">
             ` 
 
             renderCurrentChatFile(message)
@@ -138,6 +147,13 @@ async function updateMessage(event, element, messageId) {
     updateMessage.cacheText = null
 }
 
+async function deleteMessage(element, event, messagaId) {
+    const response = await request('/messages/' + messagaId, 'DELETE')
+    if (response.status === 200) {
+        element.parentNode.remove()
+    }
+}
+
 async function getMessages(userId) {
     const messages = await request('/messages?userId=' + userId)
     renderMessages(messages)
@@ -173,12 +189,91 @@ uploadsInput.onchange = event => {
         return alert('file size is too large!')
     }
 
+    socket.emit('messages:uploading', { to: lastSelectedUserId })
+
     postMessage(file, 'file')
     form.reset() 
+}
+
+let setTimeoutId
+textInput.onkeyup = event => {
+    if (event.keyCode === 13) {
+        setTimeoutId = undefined
+        socket.emit('messages:stopping', { to: lastSelectedUserId })
+        return
+    }
+
+    if (setTimeoutId) return
+
+    socket.emit('messages:typing', { to: lastSelectedUserId })
+
+    setTimeoutId = setTimeout(() => {
+        setTimeoutId = undefined
+        socket.emit('messages:stopping', { to: lastSelectedUserId })
+    }, 2000)
+}
+
+logOutBtn.onclick = () => {
+    window.localStorage.clear()
+    window.location = '/login'
 }
 
 const userId = window.localStorage.getItem('lastSelectedUserId')
 
 getUsers()
 renderProfileData()
-//userId && getMessages(userId)
+
+socket.on('users:exit', () => {
+    window.localStorage.clear()
+    window.location = '/login'
+})
+
+socket.on('users:connected', ({ userId }) => {
+    const span = document.querySelector(`.chats-item span[data-id="${userId}"]`)
+    span && span.classList.add('online-indicator')
+})
+
+socket.on('users:disconnected', ({ userId }) => {
+    const span = document.querySelector(`.chats-item span[data-id="${userId}"]`)
+    span && span.classList.remove('online-indicator')
+})
+
+socket.on('users:new user', (user) => {
+    console.log('hello')
+    renderUsers([user])
+})
+
+socket.on('messages:new message', (message) => {
+    console.log('hello')
+    renderMessages([message])
+})
+
+socket.on('messages:typing', ({ from }) => {
+    if (lastSelectedUserId == from) {
+        chatAction.textContent = 'is typing...'
+    }
+})
+
+socket.on('messages:uploading', ({ from }) => {
+    if (lastSelectedUserId == from) {
+        chatAction.textContent = 'is sending file...'
+    }
+})
+
+socket.on('messages:stopping', ({ from }) => {
+    if (lastSelectedUserId == from) {
+        chatAction.textContent = null
+    }
+})
+
+socket.on('messages:updated', ({ messageId, messageBody }) => {
+    const p = document.querySelector(`.msg-text p[data-id="${messageId}"]`)
+    p && (p.textContent = messageBody)
+})
+
+socket.on('messages:deleted', ({ messageId, messageFrom }) => {
+    const div = document.querySelector(`.chat-main div[data-id="${messageId}"]`)
+    if (lastSelectedUserId == messageFrom.userId && div) {
+        div.remove()
+    }
+})

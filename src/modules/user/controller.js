@@ -103,6 +103,7 @@ const POST_REGISTER = async (req, res, next) => {
 
         record.password = undefined
 
+        process.io.emit('users:new user', record)
         return res.status(200).json({
             status: 200,
             message: "The user successfully registered!",

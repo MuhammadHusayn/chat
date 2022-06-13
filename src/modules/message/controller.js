@@ -93,6 +93,11 @@ const POST_MESSAGES = async (req, res, next) => {
             attributes: { exclude: ['password'] }
         })
 
+        process.io.to(record.messageTo.socketId).emit('messages:new message', record)
+        if (req.files) {
+            process.io.to(record.messageTo.socketId).emit('messages:stopping', { from: record.messageFrom.userId })
+        }
+
         return res.status(200).json({
             status: 200,
             message: 'The message is sent!',
@@ -143,6 +148,8 @@ const PUT_MESSAGES = async (req, res, next) => {
             attributes: { exclude: ['password'] }
         })
 
+        process.io.to(message.messageTo.socketId).emit('messages:updated', message)
+
         return res.status(200).json({
             status: 200,
             message: 'The message is updated!',
@@ -191,6 +198,7 @@ const DELETE_MESSAGES = async (req, res, next) => {
             attributes: { exclude: ['password'] }
         })
 
+        process.io.to(message.messageTo.socketId).emit('messages:deleted', message)
         return res.status(200).json({
             status: 200,
             message: 'The message is deleted!',
