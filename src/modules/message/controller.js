@@ -198,7 +198,7 @@ const DELETE_MESSAGES = async (req, res, next) => {
             attributes: { exclude: ['password'] }
         })
 
-        process.io.to(message.messageTo.socketId).emit('messages:deleted', message)
+        process.io?.to(message.messageTo.socketId).emit('messages:deleted', message)
         return res.status(200).json({
             status: 200,
             message: 'The message is deleted!',
